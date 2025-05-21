@@ -1,6 +1,6 @@
 import pandas as pd
 from mlxtend.preprocessing import TransactionEncoder
-from mlxtend.frequent_patterns import apriori
+from mlxtend.frequent_patterns import apriori, association_rules
 
 
 # Leer archivo excel
@@ -31,9 +31,21 @@ print(df_matrix.head())
 # Generar combinaciones frecuentes con al menos 5% de soporte
 frecuentes = apriori(df_matrix, min_support=0.05, use_colnames=True)
 
-# Filtrar solo los conjuntos con dos o más productos
-frecuentes = frecuentes[frecuentes["itemsets"].apply(lambda x: len(x) >=2)]
-
 # Mostrar los resultados
 print("Conjuntos frecuentes de productos (soporte mínimo 5%): ")
 print(frecuentes.sort_values(by="support", ascending=False))
+
+# Generar reglas desde los itemsets frecuentes
+reglas = association_rules(frecuentes, metric="confidence", min_threshold=0.4)
+
+# Filtrar reglas útiles (al menos un producto en antecedente y consecuente)
+reglas = reglas[(reglas["antecedents"].apply(len) >= 1) & (reglas["consequents"].apply(len) >= 1)]
+
+# Mostrar reglas ordenadas por confianza
+print("\nReglas de asociación (confianza mínima 40%): ")
+print(reglas[["antecedents", "consequents", "support", "confidence", "lift"]].sort_values(by="confidence", ascending=False))
+
+# Guardar resultados
+output_path = "output/reglas_ventas.xlsx"
+reglas.to_excel(output_path, index=False)
+print(f"\nReglas guardadas en: {output_path}")
